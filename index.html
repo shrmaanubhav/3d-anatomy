@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>3D Anatomy Viewer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="app-header">
+    <h1>ANATOMY<span>EXPLORER</span></h1>
+</header>
+
+<div class="ui-controls">
+    <div class="control-header">ANATOMY LAYERS</div>
+  
+    <label class="switch-container">
+        <span class="label-text">Internal Organs</span>
+        <input type="checkbox" checked onchange="toggleLayer('organs')">
+        <span class="slider"></span>
+    </label>
+
+    <label class="switch-container">
+        <span class="label-text">Circulatory System</span>
+        <input type="checkbox" checked onchange="toggleLayer('blood')">
+        <span class="slider"></span>
+    </label>
+
+    <label class="switch-container">
+        <span class="label-text">Nervous System</span>
+        <input type="checkbox" checked onchange="toggleLayer('nerves')">
+        <span class="slider"></span>
+    </label>
+
+    <div class="divider"></div>
+    <div class="control-header">VISUALIZATION TOOLS</div>
+
+    <label class="switch-container">
+        <span class="label-text">Cross-Section</span>
+        <input type="checkbox" checked id="clip-toggle">
+        <span class="slider"></span>
+    </label>
+
+    <label class="switch-container">
+        <span class="label-text">Pulmonary Transparency</span>
+        <input type="checkbox" id="lung-toggle">
+        <span class="slider"></span>
+    </label>
+</div>
+
+<div id="info-panel" class="info-card">
+    <h2 id="info-title">Organ Detail</h2>
+    <p id="info-system">System Category</p>
+    <hr>
+    <div class="content-wrapper">
+        <p id="info-desc">Click a numbered label to explore specific anatomical functions and details.</p>
+    </div>
+    <button class="close-btn" onclick="this.parentElement.style.display='none'">CLOSE PREVIEW</button>
+</div>
+
+<div id="info">Scroll to zoom • Drag to rotate • Click labels for detail</div>
+
+<script type="module" src="main.js"></script>
+
+</body>
+</html>
