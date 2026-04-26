@@ -114,7 +114,7 @@ project-root/
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/your-username/anatomy-explorer.git
+git clone https://github.com/shrmaanubhav/3d-anatomy.git
 cd anatomy-explorer
 ```
 ### 2. Run locally
