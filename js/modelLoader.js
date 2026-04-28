@@ -59,6 +59,10 @@ function createInteractiveLabel(mesh, idNum, data, system, labelsArray, controls
         div.classList.add('expanded');
 
         if (window.showInfoPanel) window.showInfoPanel(data.name, data.desc, system);
+        if (window.toggleOrganPulloutFromLabel) {
+            const didPullout = window.toggleOrganPulloutFromLabel(mesh, system);
+            if (didPullout) return;
+        }
         
         const camera = controls.object;
         const isCameraAtFront = camera.position.z > 0;

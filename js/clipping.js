@@ -46,6 +46,12 @@ export function updateClipping(camera, controls, clipPlane, state) {
         }
     }
     
+    const isMuscleZoomedAway = t >= 0.5;
+    const canShowSkeleton = state.manualVisibility.skeleton &&
+        state.manualVisibility.muscle &&
+        isMuscleZoomedAway &&
+        !isInternalViewActive;
+
     //  Layer Assignments
     if (state.layers["muscle"]) {
         state.layers["muscle"].visible = (t < 0.5) && state.manualVisibility.muscle;
@@ -53,5 +59,5 @@ export function updateClipping(camera, controls, clipPlane, state) {
     if (state.layers["organs"]) state.layers["organs"].visible = state.manualVisibility.organs;
     if (state.layers["blood"]) state.layers["blood"].visible = state.manualVisibility.blood;
     if (state.layers["nerves"]) state.layers["nerves"].visible = state.manualVisibility.nerves;
-    if (state.layers["skeleton"]) state.layers["skeleton"].visible = !state.manualVisibility.nerves;
+    if (state.layers["skeleton"]) state.layers["skeleton"].visible = canShowSkeleton;
 }
