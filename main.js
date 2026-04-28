@@ -3,11 +3,15 @@ import { initScene } from './js/sceneSetup.js';
 import { loadAllModels } from './js/modelLoader.js';
 import { updateClipping } from './js/clipping.js';
 import { setupEvents } from './js/events.js';
+import { initDigestiveMotion, updateDigestiveMotion } from './js/digestiveMotion.js';
+import { toggleOrganPullout, updateOrganPullouts } from './js/organPullout.js';
 
 const state = {
     layers: {},
     manualVisibility: { muscle: true, organs: true, blood: true, nerves: true, skeleton: true },
     isDynamicClipping: true,
+    isDigestiveFlowActive: true,
+    digestiveFlowSpeed: 1,
     viewInsideLungs: false, 
     targetDistance: 20,
     sliceDepth: 10,
@@ -19,6 +23,7 @@ const state = {
 const clipPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 0);
 const mainGroup = new THREE.Group();
 const labelWorldPos = new THREE.Vector3(); 
+const clock = new THREE.Clock();
 
 // init
 const { scene, camera, renderer, controls } = initScene();
@@ -27,6 +32,7 @@ scene.add(mainGroup);
 // load models
 loadAllModels(mainGroup, state, clipPlane, controls, (calculatedDepth) => {
     state.sliceDepth = calculatedDepth;
+    initDigestiveMotion(mainGroup, state);
 
     const box = new THREE.Box3().setFromObject(mainGroup);
     const size = box.getSize(new THREE.Vector3());
@@ -49,6 +55,7 @@ setupEvents(camera, renderer, controls, state, mainGroup);
 // animations & render loop
 function animate() {
     requestAnimationFrame(animate); 
+    const elapsedTime = clock.getElapsedTime();
 
     // smooth camera zooming
     if (!state.isFlying) {
@@ -59,6 +66,8 @@ function animate() {
     }
     controls.update();
     updateClipping(camera, controls, clipPlane, state);
+    updateOrganPullouts(state);
+    updateDigestiveMotion(state, elapsedTime);
 
     // label visibility & occlusion logic
     if (state.labels) {
@@ -71,7 +80,7 @@ function animate() {
             if (state.manualVisibility.organs) activeSystems.push('organs');
             if (state.manualVisibility.blood) activeSystems.push('blood');
             if (state.manualVisibility.nerves) activeSystems.push('nerves');
-        } else if (state.manualVisibility.skeleton) {
+        } else if (state.manualVisibility.skeleton && state.layers['skeleton']?.visible) {
             activeSystems.push('skeleton');
         }
 
@@ -150,6 +159,11 @@ window.showInfoPanel = (title, desc, system) => {
     panel.style.display = 'block';
 };
 
+window.toggleOrganPulloutFromLabel = (mesh, system) => {
+    if (!['organs', 'blood', 'nerves'].includes(system)) return false;
+    return toggleOrganPullout(mesh, camera, state);
+};
+
 
 
 // 1. Handle Anatomy Layers (Muscle, Organs, etc.)
@@ -164,6 +178,7 @@ window.toggleLayer = (system) => {
 document.addEventListener('DOMContentLoaded', () => {
     const clipToggle = document.getElementById('clip-toggle');
     const lungToggle = document.getElementById('lung-toggle');
+    const digestiveFlowToggle = document.getElementById('digestive-flow-toggle');
 
     if (clipToggle) {
         clipToggle.addEventListener('change', (e) => {
@@ -174,6 +189,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (lungToggle) {
         lungToggle.addEventListener('change', (e) => {
             state.viewInsideLungs = e.target.checked;
+        });
+    }
+
+    if (digestiveFlowToggle) {
+        digestiveFlowToggle.addEventListener('change', (e) => {
+            state.isDigestiveFlowActive = e.target.checked;
         });
     }
 });

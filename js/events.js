@@ -1,10 +1,11 @@
 import * as THREE from './three.module.js';
+import { getPullableOrganFromIntersections, getVisiblePulloutMeshes, toggleOrganPullout } from './organPullout.js';
+
 export function setupEvents(camera, renderer, controls, state, mainGroup) {
 
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
 
-    //  CLICK DETECTOR: Identifies "Object_XX" names in the console
     renderer.domElement.addEventListener('click', (event) => {
         mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
         mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -16,28 +17,14 @@ export function setupEvents(camera, renderer, controls, state, mainGroup) {
             return;
         }
 
-        const intersects = raycaster.intersectObjects(mainGroup.children, true);
-        // debugging function to print all intersected objects
-        if (intersects.length > 0) {
-            const hit = intersects[0];
-            const clickedObj = hit.object;
-            
-            // 1. Get the exact surface point you clicked in the mesh's local space
-            const localHitPoint = clickedObj.worldToLocal(hit.point.clone());
+        const pulloutMeshes = getVisiblePulloutMeshes(state);
+        if (pulloutMeshes.length === 0) return;
 
-            console.log("----------------------------");
-            console.log(`🎯 Mesh Found: ${clickedObj.name}`);
-            console.log(`System: ${clickedObj.parent.name || "Unknown"}`);
-            
-            // 2. This prints the exact array formatted for your ANATOMY_MAP!
-            console.log(`✅ COPY THIS POSITION: [${localHitPoint.x.toFixed(3)}, ${localHitPoint.y.toFixed(3)}, ${localHitPoint.z.toFixed(3)}]`);
-            
-            // 3. Visual feedback: flashes the clicked part red
-            if (clickedObj.material && clickedObj.material.color) {
-                const originalColor = clickedObj.material.color.getHex();
-                clickedObj.material.color.setHex(0xff0000); 
-                setTimeout(() => clickedObj.material.color.setHex(originalColor), 200);
-            }
+        const intersects = raycaster.intersectObjects(pulloutMeshes, false);
+        const clickedOrgan = getPullableOrganFromIntersections(intersects, state);
+
+        if (clickedOrgan) {
+            toggleOrganPullout(clickedOrgan, camera, state);
         }
     });
 
