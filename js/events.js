@@ -1,5 +1,9 @@
 import * as THREE from './three.module.js';
-import { getPullableOrganFromIntersections, getVisiblePulloutMeshes, toggleOrganPullout } from './organPullout.js';
+import { 
+    getPullableOrganFromIntersections, 
+    getVisiblePulloutMeshes, 
+    toggleOrganPullout 
+} from './organPullout.js';
 
 export function setupEvents(camera, renderer, controls, state, mainGroup) {
 
@@ -12,10 +16,7 @@ export function setupEvents(camera, renderer, controls, state, mainGroup) {
 
         raycaster.setFromCamera(mouse, camera);
 
-        if (!mainGroup) {
-            console.error("Raycaster Error: mainGroup is not defined in setupEvents.");
-            return;
-        }
+        if (!mainGroup) return;
 
         const pulloutMeshes = getVisiblePulloutMeshes(state);
         if (pulloutMeshes.length === 0) return;

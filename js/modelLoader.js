@@ -13,9 +13,9 @@ export const ANATOMY_MAP = {
     organs: {
         "Object_2": { id: 6, side: "front", name: "Bronchii", desc: "The primary airways that conduct air directly from the trachea into the functional tissues of the lungs." },
         "Object_54": { id: 7, side: "front", name: "Small Intestine", desc: "A highly coiled tube where the vast majority of digestion and nutrient absorption into the bloodstream occurs." },
-        "Object_52": { id: 8, side: "front", name: "Pancreas", desc: "A vital glandular organ that produces digestive enzymes to break down food, and secretes hormones like insulin to regulate blood sugar levels." },
-        "Object_70": { id: 9, side: "front", name: "Liver", desc: "The body's chemical factory, responsible for filtering toxins from the blood, producing bile, and storing glycogen." },
-        "Object_71": { id: 10, side: "front", name: "Stomach", desc: "A muscular organ that churns food and secretes highly acidic gastric juices to break down proteins.",offset: [0.5, 0, 0] },
+        "Object_84": { id: 8,side: "back",name: "Kidneys",desc: "A pair of bean-shaped organs that filter waste and excess fluids from the blood, forming urine. They also regulate blood pressure, electrolyte balance, and red blood cell production."},
+        "Object_75": { id: 9, side: "front", name: "Liver", desc: "The body's chemical factory, responsible for filtering toxins from the blood, producing bile, and storing glycogen." },
+        "Object_85": { id: 10, side: "front", name: "Stomach", desc: "A muscular organ that churns food and secretes highly acidic gastric juices to break down proteins.",offset: [0.5, 0, 0] },
         "Object_57": { id: 11, side: "front", name: "Large Intestine", desc: "The final section of the gastrointestinal tract, responsible for absorbing water and forming solid waste." },
         "Object_62": { id: 12, side: "front", name: "Lungs", desc: "Spongy, air-filled organs where life-sustaining oxygen enters the blood and carbon dioxide is expelled." }
     },
@@ -46,44 +46,69 @@ function createInteractiveLabel(mesh, idNum, data, system, labelsArray, controls
     div.className = 'anatomy-label';
     div.style.pointerEvents = 'auto'; 
     div.innerHTML = `<div class="dot">${data.id}</div><div class="text">${data.name}</div>`;
-    
-    // 1. Initialize the 3D Label Object first so the click handler can use it
     const labelObj = new CSS2DObject(anchor);
     labelObj.userData = data; 
 
     div.onclick = (e) => {
-        e.stopPropagation();
-        
-        // UI Feedback
-        document.querySelectorAll('.anatomy-label').forEach(el => el.classList.remove('expanded'));
-        div.classList.add('expanded');
+    e.stopPropagation();
+    
+    // 1. UI Feedback
+    document.querySelectorAll('.anatomy-label').forEach(el => el.classList.remove('expanded'));
+    div.classList.add('expanded');
 
-        if (window.showInfoPanel) window.showInfoPanel(data.name, data.desc, system);
+    if (window.showInfoPanel) window.showInfoPanel(data.name, data.desc, system);
+    
+    const camera = controls.object;
+    const isCameraAtFront = camera.position.z > 0;
+
+    // 2. Check if the organ is ALREADY pulled out
+    const isAlreadyOut = div.classList.contains('is-pulled-out');
+
+    if (isAlreadyOut) {
+        // --- PUTTING ORGAN BACK ---
+        div.classList.remove('is-pulled-out');
+        
+        // Reset the camera back to the center of the body
+        controls.target.set(0, 0, 0); 
+        controls.update();
+
         if (window.toggleOrganPulloutFromLabel) {
-            const didPullout = window.toggleOrganPulloutFromLabel(mesh, system);
-            if (didPullout) return;
+            window.toggleOrganPulloutFromLabel(mesh, system);
         }
-        
-        const camera = controls.object;
-        const isCameraAtFront = camera.position.z > 0;
+        return;
+    }
 
-        //  Trigger rotation if the camera is on the wrong side
-        if (data.side === 'back' && isCameraAtFront) {
-            window.flyTo([0, 1, -1], [0, 0, 0]); 
-        } else if (data.side === 'front' && !isCameraAtFront) {
-            window.flyTo([0, 1, 1], [0, 0, 0]); 
-        } else {
-            // Already on correct side: Focus on the specific mesh
-            const targetWorldPos = new THREE.Vector3();
-            labelObj.getWorldPosition(targetWorldPos);
-            controls.target.copy(targetWorldPos);
-            controls.update();
+    // --- PULLING ORGAN OUT ---
+    div.classList.add('is-pulled-out');
+
+    let isRotating = false;
+
+    if (data.side === 'back' && isCameraAtFront) {
+        window.flyTo([0, 1, -1], [0, 0, 0]); 
+        isRotating = true;
+    } else if (data.side === 'front' && !isCameraAtFront) {
+        window.flyTo([0, 1, 1], [0, 0, 0]); 
+        isRotating = true;
+    } else {
+        const targetWorldPos = new THREE.Vector3();
+        labelObj.getWorldPosition(targetWorldPos);
+        controls.target.copy(targetWorldPos);
+        controls.update();
+    }
+
+    // Delay the pullout if the camera is currently flying
+    const delayDuration = isRotating ? 1500 : 0;
+
+    setTimeout(() => {
+        if (window.toggleOrganPulloutFromLabel) {
+            window.toggleOrganPulloutFromLabel(mesh, system);
         }
-    };
+    }, delayDuration);
+};
 
     anchor.appendChild(div);
     
-    // Positioning logic (Centering on mesh)
+    // Positioning logic
     mesh.geometry.computeBoundingBox();
     const center = new THREE.Vector3();
     mesh.geometry.boundingBox.getCenter(center);
@@ -93,7 +118,7 @@ function createInteractiveLabel(mesh, idNum, data, system, labelsArray, controls
     labelsArray.push({ element: labelObj, system: system });
 }
 
-//  THE MODEL LOADER ---
+//  THE MODEL LOADER 
 export function loadAllModels(mainGroup, state, clipPlane, controls, onModelsLoaded) {
     const loader = new GLTFLoader();
     
@@ -166,7 +191,7 @@ export function loadAllModels(mainGroup, state, clipPlane, controls, onModelsLoa
                     if (systemMap && systemMap[child.name]) {
                         createInteractiveLabel(
                             child, 
-                            objNumber, // Uses the actual object number for the circle UI
+                            objNumber, 
                             systemMap[child.name], 
                             m.name, 
                             state.labels, 

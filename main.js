@@ -3,7 +3,6 @@ import { initScene } from './js/sceneSetup.js';
 import { loadAllModels } from './js/modelLoader.js';
 import { updateClipping } from './js/clipping.js';
 import { setupEvents } from './js/events.js';
-import { initDigestiveMotion, updateDigestiveMotion } from './js/digestiveMotion.js';
 import { toggleOrganPullout, updateOrganPullouts } from './js/organPullout.js';
 
 const state = {
@@ -32,7 +31,6 @@ scene.add(mainGroup);
 // load models
 loadAllModels(mainGroup, state, clipPlane, controls, (calculatedDepth) => {
     state.sliceDepth = calculatedDepth;
-    initDigestiveMotion(mainGroup, state);
 
     const box = new THREE.Box3().setFromObject(mainGroup);
     const size = box.getSize(new THREE.Vector3());
@@ -67,7 +65,6 @@ function animate() {
     controls.update();
     updateClipping(camera, controls, clipPlane, state);
     updateOrganPullouts(state);
-    updateDigestiveMotion(state, elapsedTime);
 
     // label visibility & occlusion logic
     if (state.labels) {
