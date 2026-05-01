@@ -66,6 +66,20 @@ function animate() {
     updateClipping(camera, controls, clipPlane, state);
     updateOrganPullouts(state);
 
+    const camDist = camera.position.distanceTo(controls.target);
+
+    // Stage 2: organs + blood + nerves
+    if (camDist < 14) {
+        state.activateLayer("organs");
+        state.activateLayer("blood");
+        state.activateLayer("nerves");
+    }
+
+    // Stage 3: skeleton
+    if (camDist < 9) {
+        state.activateLayer("skeleton");
+    }
+
     // label visibility & occlusion logic
     if (state.labels) {
         let activeSystems = [];
