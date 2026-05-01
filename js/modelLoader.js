@@ -137,9 +137,6 @@ export async function loadAllModels(mainGroup, state, clipPlane, controls, onMod
         const model = gltf.scene;
         model.scale.set(5, 5, 5);
 
-        // =========================
-        // 🔥 PASS 1: IMMEDIATE (visibility + labels)
-        // =========================
         model.traverse(child => {
             if (!child.isMesh) return;
 
@@ -152,7 +149,6 @@ export async function loadAllModels(mainGroup, state, clipPlane, controls, onMod
                 child.visible = false;
             }
 
-            // --- 🔥 CREATE LABELS IMMEDIATELY ---
             const systemMap = ANATOMY_MAP[name];
             if (systemMap && systemMap[child.name]) {
                 const objNumber = parseInt(child.name.replace("Object_", ""));
@@ -167,9 +163,6 @@ export async function loadAllModels(mainGroup, state, clipPlane, controls, onMod
             }
         });
 
-        // =========================
-        // 🟡 PASS 2: HEAVY WORK (deferred)
-        // =========================
         requestIdleCallback(() => {
             model.traverse(child => {
                 if (!child.isMesh) return;
@@ -197,6 +190,7 @@ export async function loadAllModels(mainGroup, state, clipPlane, controls, onMod
 
         return model;
     }
+    
     function loadModel(name, onReady) {
         if (cache[name] || loading[name]) return;
         loading[name] = true;
