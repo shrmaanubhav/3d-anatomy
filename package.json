@@ -1,0 +1,18 @@
+{
+  "name": "cgv-project",
+  "version": "1.0.0",
+  "description": "An interactive, web-based 3D anatomy visualization tool that allows users to explore the human body layer-by-layer with smooth navigation, smart labeling, and internal structure visualization.",
+  "main": "main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "vite": "^8.0.10"
+  }
+}
