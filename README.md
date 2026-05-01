@@ -88,6 +88,8 @@ project-root/
 │   │   │   └── OrbitControls.js
 │   │   ├── loaders
 │   │   │   └── GLTFLoader.js
+│   │   ├── libs
+│   │   │   └── meshopt_decoder.module.js
 │   │   ├── renderers
 │   │   │   └── CSS2DRenderer.js
 │   │   ├── utils
@@ -95,6 +97,7 @@ project-root/
 │   │   ├── clipping.js
 │   │   ├── events.js
 │   │   ├── modelLoader.js
+│   │   ├── organPullout.js
 │   │   ├── sceneSetup.js
 │   │   └──three.module.js
 │   ├── models
