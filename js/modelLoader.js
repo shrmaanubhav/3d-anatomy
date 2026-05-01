@@ -137,9 +137,13 @@ export async function loadAllModels(mainGroup, state, clipPlane, controls, onMod
         const model = gltf.scene;
         model.scale.set(5, 5, 5);
 
+        // =========================
+        // 🔥 PASS 1: IMMEDIATE (visibility + labels)
+        // =========================
         model.traverse(child => {
             if (!child.isMesh) return;
 
+            // --- hide unwanted parts ---
             if (name === "organs" && ["Object_50", "Object_51", "Object_66", "Object_68"].includes(child.name)) {
                 child.visible = false;
             }
@@ -147,8 +151,25 @@ export async function loadAllModels(mainGroup, state, clipPlane, controls, onMod
             if (name === "blood" && ["Object_39", "Object_42", "Object_52", "Object_209"].includes(child.name)) {
                 child.visible = false;
             }
+
+            // --- 🔥 CREATE LABELS IMMEDIATELY ---
+            const systemMap = ANATOMY_MAP[name];
+            if (systemMap && systemMap[child.name]) {
+                const objNumber = parseInt(child.name.replace("Object_", ""));
+                createInteractiveLabel(
+                    child,
+                    objNumber,
+                    systemMap[child.name],
+                    name,
+                    state.labels,
+                    controls
+                );
+            }
         });
 
+        // =========================
+        // 🟡 PASS 2: HEAVY WORK (deferred)
+        // =========================
         requestIdleCallback(() => {
             model.traverse(child => {
                 if (!child.isMesh) return;
@@ -171,24 +192,11 @@ export async function loadAllModels(mainGroup, state, clipPlane, controls, onMod
                 else {
                     child.material.clippingPlanes = (name === "muscle" || name === "blood") ? [] : [clipPlane];
                 }
-
-                const systemMap = ANATOMY_MAP[name];
-                if (systemMap && systemMap[child.name]) {
-                    createInteractiveLabel(
-                        child,
-                        objNumber,
-                        systemMap[child.name],
-                        name,
-                        state.labels,
-                        controls
-                    );
-                }
             });
         });
 
         return model;
     }
-
     function loadModel(name, onReady) {
         if (cache[name] || loading[name]) return;
         loading[name] = true;
