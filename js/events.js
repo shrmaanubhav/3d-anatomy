@@ -18,10 +18,7 @@ export function setupEvents(camera, renderer, controls, state, mainGroup) {
 
         if (!mainGroup) return;
 
-        const pulloutMeshes = getVisiblePulloutMeshes(state);
-        if (pulloutMeshes.length === 0) return;
-
-        const intersects = raycaster.intersectObjects(pulloutMeshes, false);
+        const intersects = raycaster.intersectObjects(mainGroup.children, true); 
         const clickedOrgan = getPullableOrganFromIntersections(intersects, state);
 
         if (clickedOrgan) {

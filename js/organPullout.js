@@ -1,11 +1,12 @@
 import * as THREE from './three.module.js';
 
+// --- CONFIGURATION ---
 const pullDistance = 4.2;
 const pullLerp = 0.13;
 const pullScale = 1.4; 
 const spinSpeed = 0.005; 
 
-// SHARED VECTORS (Memory Optimization)
+// --- SHARED MATH OBJECTS ---
 const cameraRight = new THREE.Vector3();
 const inverseParentMatrix = new THREE.Matrix4();
 const worldUp = new THREE.Vector3(0, 1, 0);
@@ -16,6 +17,7 @@ const p1 = new THREE.Vector3();
 const p2 = new THREE.Vector3();
 const offsetFromOrigin = new THREE.Vector3();
 
+// --- ORGAN DEFINITIONS ---
 const organGroups = {
     heart: { system: 'blood', meshes: ['Object_152'] },
     small_intestine: { system: 'organs', meshes: ['Object_54', 'Object_55', 'Object_56'] },
@@ -35,7 +37,8 @@ Object.entries(organGroups).forEach(([organ, data]) => {
     data.meshes.forEach(name => meshToOrgan.set(name, organ));
 });
 
-// HELPERS 
+// --- HELPERS ---
+
 function isObjectVisible(object) {
     let current = object;
     while (current) {
@@ -43,6 +46,18 @@ function isObjectVisible(object) {
         current = current.parent;
     }
     return true;
+}
+
+function isObjectInMuscleLayer(object, state) {
+    const muscleLayer = state.layers['muscle']; 
+    if (!muscleLayer) return false;
+    
+    let current = object;
+    while (current) {
+        if (current === muscleLayer) return true;
+        current = current.parent;
+    }
+    return false;
 }
 
 function getOrganMeshes(mesh, state) {
@@ -64,20 +79,16 @@ function getOrganMeshes(mesh, state) {
     return meshes.length ? { organ, meshes } : null;
 }
 
-function getMaterialList(mesh) {
-    if (!mesh.material) return [];
-    return Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-}
-
 function setSelectedMaterial(meshes, isSelected) {
     meshes.forEach(mesh => {
-        getMaterialList(mesh).forEach(material => {
+        const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+        materials.forEach(material => {
             if (!material || !material.emissive) return;
 
             if (!material.userData._pulloutInit) {
                 material.userData._pulloutInit = true;
                 material.userData.baseEmissive = material.emissive.clone();
-                material.userData.baseEmissiveIntensity = material.emissiveIntensity !== undefined ? material.emissiveIntensity : 1;
+                material.userData.baseEmissiveIntensity = material.emissiveIntensity ?? 1;
             }
 
             if (isSelected) {
@@ -92,15 +103,12 @@ function setSelectedMaterial(meshes, isSelected) {
     });
 }
 
-// ENTRY STORAGE (VISUAL PIVOT MATH)
 function getEntry(organ, meshes, state) {
     if (!state.organPullouts) {
         state.organPullouts = { active: null, entries: new Map() };
     }
 
     if (!state.organPullouts.entries.has(organ)) {
-        
-        // Calculate the raw unscaled geometry centers once
         const localCenters = meshes.map(mesh => {
             if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
             const center = new THREE.Vector3();
@@ -108,7 +116,6 @@ function getEntry(organ, meshes, state) {
             return center;
         });
 
-        // Convert those into the true visual centers in the 3D world
         const baseVisualCenters = meshes.map((mesh, i) => {
             const c = localCenters[i].clone();
             c.multiply(mesh.scale).applyQuaternion(mesh.quaternion).add(mesh.position);
@@ -119,17 +126,12 @@ function getEntry(organ, meshes, state) {
             meshes,
             localCenters,
             baseVisualCenters,
-            
-            // animate the visual centers directly instead of the raw positions
             currentVisualCenters: baseVisualCenters.map(v => v.clone()),
             targetVisualCenters: baseVisualCenters.map(v => v.clone()),
-            
             baseScales: meshes.map(m => m.scale.clone()),
             targetScales: meshes.map(m => m.scale.clone()),
-            
             baseQuats: meshes.map(m => m.quaternion.clone()),
             targetQuats: meshes.map(m => m.quaternion.clone()),
-            
             pivot: null,
             isOut: false
         });
@@ -151,18 +153,24 @@ function resetActive(state) {
     state.organPullouts.active = null;
 }
 
-// main functions
 export function getPullableOrganFromIntersections(intersections, state) {
+    const muscleActive = state.layers['muscle']?.visible && state.manualVisibility['muscle'];
+
     for (const hit of intersections) {
         const object = hit.object;
         if (!object?.isMesh) continue;
-        if (object.parent?.name === 'digestive_flow_visualization') continue;
 
-        const organ = meshToOrgan.get(object.name);
-        if (organ) {
-            const system = organToSystem.get(organ);
-            if (state.layers[system] && state.layers[system].visible && state.manualVisibility[system]) {
-                return object;
+        if (object.parent?.name === 'digestive_flow_visualization') continue;
+        if (muscleActive && isObjectInMuscleLayer(object, state)) {
+            return null; 
+        }
+
+        const organName = meshToOrgan.get(object.name);
+        if (organName) {
+            const system = organToSystem.get(organName);
+            // Only pull if the layer for this organ is actually turned on
+            if (state.layers[system]?.visible && state.manualVisibility[system]) {
+                return object; 
             }
         }
     }
@@ -216,9 +224,7 @@ export function updateOrganPullouts(state) {
     if (!state.organPullouts) return;
 
     state.organPullouts.entries.forEach(entry => {
-        
         if (entry.isOut && entry.pivot) {
-            // Find "Up" relative to the organ to spin it naturally
             const parent = entry.meshes[0].parent;
             inverseParentMatrix.copy(parent.matrixWorld).invert();
             localUp.copy(worldUp).transformDirection(inverseParentMatrix).normalize();
