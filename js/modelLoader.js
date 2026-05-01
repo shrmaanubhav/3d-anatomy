@@ -1,6 +1,7 @@
 import * as THREE from './three.module.js';
 import { GLTFLoader } from './loaders/GLTFLoader.js';
 import { CSS2DObject } from './renderers/CSS2DRenderer.js';
+const BASE = import.meta.env.VITE_ASSET_BASE_URL;
 
 export const ANATOMY_MAP = {
     muscle: {
@@ -50,65 +51,63 @@ function createInteractiveLabel(mesh, idNum, data, system, labelsArray, controls
     labelObj.userData = data; 
 
     div.onclick = (e) => {
-    e.stopPropagation();
-    
-    // 1. UI Feedback
-    document.querySelectorAll('.anatomy-label').forEach(el => el.classList.remove('expanded'));
-    div.classList.add('expanded');
-
-    if (window.showInfoPanel) window.showInfoPanel(data.name, data.desc, system);
-    
-    const camera = controls.object;
-    const isCameraAtFront = camera.position.z > 0;
-
-    // 2. Check if the organ is ALREADY pulled out
-    const isAlreadyOut = div.classList.contains('is-pulled-out');
-
-    if (isAlreadyOut) {
-        // --- PUTTING ORGAN BACK ---
-        div.classList.remove('is-pulled-out');
+        e.stopPropagation();
         
-        // Reset the camera back to the center of the body
-        controls.target.set(0, 0, 0); 
-        controls.update();
+        document.querySelectorAll('.anatomy-label').forEach(el => el.classList.remove('expanded'));
+        div.classList.add('expanded');
 
-        if (window.toggleOrganPulloutFromLabel) {
-            window.toggleOrganPulloutFromLabel(mesh, system);
+        if (window.showInfoPanel) window.showInfoPanel(data.name, data.desc, system);
+        
+        const camera = controls.object;
+        const lookDir = new THREE.Vector3();
+        camera.getWorldDirection(lookDir);
+        
+        const isFacingFront = lookDir.z < 0; 
+
+        const isAlreadyOut = div.classList.contains('is-pulled-out');
+
+        if (isAlreadyOut) {
+            div.classList.remove('is-pulled-out');
+            controls.target.set(0, 0, 0); 
+            controls.update();
+            if (window.toggleOrganPulloutFromLabel) {
+                window.toggleOrganPulloutFromLabel(mesh, system);
+            }
+            return;
         }
-        return;
-    }
 
-    // --- PULLING ORGAN OUT ---
-    div.classList.add('is-pulled-out');
+        div.classList.add('is-pulled-out');
 
-    let isRotating = false;
+        let isRotating = false;
 
-    if (data.side === 'back' && isCameraAtFront) {
-        window.flyTo([0, 1, -1], [0, 0, 0]); 
-        isRotating = true;
-    } else if (data.side === 'front' && !isCameraAtFront) {
-        window.flyTo([0, 1, 1], [0, 0, 0]); 
-        isRotating = true;
-    } else {
-        const targetWorldPos = new THREE.Vector3();
-        labelObj.getWorldPosition(targetWorldPos);
-        controls.target.copy(targetWorldPos);
-        controls.update();
-    }
-
-    // Delay the pullout if the camera is currently flying
-    const delayDuration = isRotating ? 1500 : 0;
-
-    setTimeout(() => {
-        if (window.toggleOrganPulloutFromLabel) {
-            window.toggleOrganPulloutFromLabel(mesh, system);
+        if (data.side === 'back' && isFacingFront) {
+            window.flyTo([0, 1, -15], [0, 0, 0]); 
+            isRotating = true;
+        } 
+        else if (data.side === 'front' && !isFacingFront) {
+            window.flyTo([0, 1, 15], [0, 0, 0]); 
+            isRotating = true;
+        } 
+        else {
+            const targetWorldPos = new THREE.Vector3();
+            labelObj.getWorldPosition(targetWorldPos);
+            
+            controls.target.copy(targetWorldPos);
+            controls.update();
         }
-    }, delayDuration);
-};
+
+        const delayDuration = isRotating ? 1200 : 0;
+
+        setTimeout(() => {
+            if (window.toggleOrganPulloutFromLabel) {
+                window.toggleOrganPulloutFromLabel(mesh, system);
+            }
+        }, delayDuration);
+    };
 
     anchor.appendChild(div);
     
-    // Positioning logic
+    // Position label at geometry center
     mesh.geometry.computeBoundingBox();
     const center = new THREE.Vector3();
     mesh.geometry.boundingBox.getCenter(center);
@@ -131,11 +130,11 @@ export function loadAllModels(mainGroup, state, clipPlane, controls, onModelsLoa
     state.labels = []; 
 
     const modelPaths = [
-        { path: 'models/skeleton.glb', name: 'skeleton' },
-        { path: 'models/muscle.glb', name: 'muscle' },
-        { path: 'models/organs.glb', name: 'organs' },
-        { path: 'models/blood.glb', name: 'blood' },
-        { path: 'models/nerves.glb', name: 'nerves' }
+        { path: `${BASE}/skeleton.glb`, name: 'skeleton' },
+        { path: `${BASE}/muscle.glb`, name: 'muscle' },
+        { path: `${BASE}/organs.glb`, name: 'organs' },
+        { path: `${BASE}/blood.glb`, name: 'blood' },
+        { path: `${BASE}/nerves.glb`, name: 'nerves' }
     ];
 
     let modelsLoaded = 0;
